@@ -11,6 +11,10 @@ use tracing::info;
 
 use crate::{error::AppError, features::dashboard::DashboardShowRoute, state::AppState};
 
+#[derive(TypedPath)]
+#[typed_path("/session")]
+pub struct SessionStoreRoute;
+
 #[derive(Deserialize)]
 pub struct SessionCreateRequest {
     username: String,
@@ -18,8 +22,9 @@ pub struct SessionCreateRequest {
 }
 
 pub async fn store(
-    State(state): State<AppState>,
+    _: SessionStoreRoute,
     cookies: Cookies,
+    State(state): State<AppState>,
     Form(login_request): Form<SessionCreateRequest>,
 ) -> impl IntoResponse {
     if login_request.username == state.config.auth.username
@@ -28,18 +33,18 @@ pub async fn store(
         cookies.add(Cookie::new("session_id", "test"));
         info!("successful login");
 
-        return Redirect::to(&DashboardShowRoute.to_uri().to_string());
+        return Redirect::to(&DashboardShowRoute.to_string());
     } else {
-        return Redirect::to("/login");
+        return Redirect::to(&SessionCreateRoute.to_string());
     }
 }
 
-pub async fn create() -> Result<impl IntoResponse, AppError> {
-    Ok(Html(
-        SessionCreateTemplate
-            .render()
-            .map_err(|_| AppError::InternalServerError)?,
-    ))
+#[derive(TypedPath)]
+#[typed_path("/login")]
+pub struct SessionCreateRoute;
+
+pub async fn create(_: SessionCreateRoute) -> Result<impl IntoResponse, AppError> {
+    Ok(Html(SessionCreateTemplate.render()?))
 }
 
 #[derive(Template)]
