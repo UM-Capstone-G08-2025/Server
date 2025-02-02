@@ -48,5 +48,5 @@ pub async fn create(_: SessionCreateRoute) -> Result<impl IntoResponse, AppError
 }
 
 #[derive(Template)]
-#[template(path = "session/create.jinja")]
+#[template(path = "session/create.html.jinja")]
 struct SessionCreateTemplate;
