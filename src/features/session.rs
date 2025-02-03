@@ -12,7 +12,7 @@ use tracing::info;
 use crate::{error::AppError, features::dashboard::DashboardShowRoute, state::AppState};
 
 #[derive(TypedPath)]
-#[typed_path("/session")]
+#[typed_path("/sessions")]
 pub struct SessionStoreRoute;
 
 #[derive(Deserialize)]
