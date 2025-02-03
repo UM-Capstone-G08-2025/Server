@@ -1,18 +1,13 @@
 use axum::{
     extract::Request,
     middleware::Next,
-    response::{Html, IntoResponse, Redirect, Response},
+    response::{Html, IntoResponse, Response},
 };
-use axum_extra::routing::TypedPath;
-use http::StatusCode;
 use rinja::Template;
-use tower_cookies::{Cookie, Cookies};
+use tower_cookies::Cookies;
 use tracing::info;
 
-use crate::{
-    error::AppError,
-    features::{error::Error404, session::SessionCreateRoute},
-};
+use crate::{error::AppError, features::error::Error404};
 
 const COOKIE_NAME: &str = "session_id";
 
