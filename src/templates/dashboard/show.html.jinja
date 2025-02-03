@@ -1,0 +1,52 @@
+<h1>ServoSentry Dashboard</h1>
+
+<img id="image" width="800px" alt="Camera offline.">
+
+<form id="form">
+    <input type="submit" name="forwards" value="Forwards">
+    <input type="submit" name="backwards" value="Reverse">
+    <input type="submit" name="left" value="Turn Left">
+    <input type="submit" name="right" value="Turn Right">
+</form>
+
+<script
+    src="https://cdn.socket.io/4.6.0/socket.io.min.js"
+    integrity="sha384-c79GN5VsunZvi+Q/WObgk2in0CbZsHnjEqvFxC5DxHn9lTfNce2WW6h2pH6u/kF+"
+    crossorigin="anonymous"
+></script>
+<script>
+  document.addEventListener("DOMContentLoaded", (event) => {
+    const channel = "channel1";
+    const socket = io();
+    const messages = document.querySelector("#messages");
+    const form = document.querySelector("#form");
+    const img = document.querySelector("#image");
+
+    socket.emit("subscribe", {
+      "channel": channel,
+    });
+
+    socket.on("new frame", (channelName, data) => {
+      if (channelName != channel) {
+        return;
+      }
+
+      console.log("received new frame");
+
+      data = JSON.parse(data);
+
+      image.src = 'data:image/jpeg;base64,' + data.frame_b64;
+    });
+
+    form.addEventListener("submit", (event) => {
+      let res = socket.emit("client event", {
+        channel: channel,
+        event: "new message",
+        data: event.submitter.name,
+      });
+
+      console.log("sent client event", event.submitter.name);
+      event.preventDefault();
+    })
+  })
+</script>

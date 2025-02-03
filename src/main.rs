@@ -15,7 +15,7 @@ use axum::Router;
 use config::Config;
 use state::AppState;
 use tower::ServiceBuilder;
-use tower_http::cors::{Any, CorsLayer};
+use tower_http::cors::CorsLayer;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 #[tokio::main]
@@ -36,15 +36,15 @@ async fn main() -> anyhow::Result<()> {
     let addr = SocketAddr::from((config.app.host, config.app.port));
 
     let state = AppState::new(config).await?;
+
+    let channels = routes::channels::channels().await?;
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
     let app = Router::new()
-        .merge(routes::routes(state.clone()))
+        .merge(routes::web::routes(state.clone()))
         .layer(
-            ServiceBuilder::new().layer(
-                CorsLayer::new()
-                    .allow_methods([http::Method::GET, http::Method::POST])
-                    .allow_origin(Any),
-            ),
+            ServiceBuilder::new()
+                .layer(CorsLayer::permissive())
+                .layer(channels),
         )
         .with_state(state)
         .into_make_service();
