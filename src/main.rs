@@ -37,7 +37,7 @@ async fn main() -> anyhow::Result<()> {
 
     let state = AppState::new(config).await?;
 
-    let channels = routes::channels::channels().await?;
+    let channels = routes::channels::channels(&state).await?;
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
     let app = Router::new()
         .merge(routes::web::routes(state.clone()))
@@ -49,6 +49,7 @@ async fn main() -> anyhow::Result<()> {
         .with_state(state)
         .into_make_service();
 
+    println!("Starting server");
     axum::serve(listener, app).await.unwrap();
 
     Ok(())

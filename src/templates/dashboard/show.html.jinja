@@ -24,6 +24,11 @@
 
     socket.emit("subscribe", {
       "channel": channel,
+      "auth": {
+        "headers": {
+          "Authorization": `Bearer {{ api_key }}`
+        },
+      },
     });
 
     socket.on("new frame", (channelName, data) => {

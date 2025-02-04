@@ -1,19 +1,30 @@
+use http::{header::AUTHORIZATION, HeaderMap};
 use serde::{Deserialize, Serialize};
 use socketioxide::{
-    extract::{Data, SocketRef},
+    extract::{Data, SocketRef, State},
     layer::SocketIoLayer,
     SocketIo,
 };
 use tracing::trace;
 
+use crate::state::AppState;
+
 #[derive(Deserialize, Serialize)]
 struct SubscribeEvent {
     channel: String,
+    auth: Auth,
+}
+
+#[derive(Deserialize, Serialize)]
+struct Auth {
+    #[serde(with = "http_serde::header_map")]
+    headers: HeaderMap,
 }
 
 #[derive(Deserialize, Serialize)]
 struct UnsubscribeEvent {
     channel: String,
+    auth: Auth,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -23,25 +34,29 @@ struct ClientEvent {
     data: serde_json::Value,
 }
 
-pub async fn channels() -> anyhow::Result<SocketIoLayer> {
-    let (layer, io) = SocketIo::builder().build_layer();
+pub async fn channels(state: &AppState) -> anyhow::Result<SocketIoLayer> {
+    let (layer, io) = SocketIo::builder()
+        .with_state(state.to_owned())
+        .build_layer();
 
     io.ns("/", |socket: SocketRef| {
         socket.on(
             "subscribe",
-            |socket: SocketRef, Data(data): Data<SubscribeEvent>| async move {
-                socket.join(data.channel.clone());
-
-                trace!("{} subscribed to channel: {}", socket.id, &data.channel);
+            |socket: SocketRef, Data(data): Data<SubscribeEvent>, State(state): State<AppState>| async move {
+                if is_authorized(&data.auth, &state) {
+                    socket.join(data.channel.clone());
+                    trace!("{} subscribed to channel: {}", socket.id, &data.channel);
+                }
             },
         );
 
         socket.on(
             "unsubscribe",
-            |socket: SocketRef, Data(data): Data<UnsubscribeEvent>| async move {
-                socket.leave(data.channel.clone());
-
-                trace!("{} unsubscribed from channel: {}", socket.id, &data.channel);
+            |socket: SocketRef, Data(data): Data<UnsubscribeEvent>, State(state): State<AppState>| async move {
+                if is_authorized(&data.auth, &state) {
+                    socket.leave(data.channel.clone());
+                    trace!("{} unsubscribed from channel: {}", socket.id, &data.channel);
+                }
             },
         );
 
@@ -75,4 +90,22 @@ pub async fn channels() -> anyhow::Result<SocketIoLayer> {
     });
 
     Ok(layer)
+}
+
+fn is_authorized(auth: &Auth, state: &AppState) -> bool {
+    if let Some(bearer_header) = auth.headers.get(AUTHORIZATION) {
+        if let Ok(bearer_str) = bearer_header.to_str() {
+            let mut split = bearer_str.split_whitespace().take(2);
+
+            if let Some(bearer_key) = split.next() {
+                if bearer_key.to_lowercase() == "bearer" {
+                    if let Some(bearer_value) = split.next() {
+                        return bearer_value == state.config.auth.api_key;
+                    }
+                }
+            }
+        }
+    }
+
+    false
 }

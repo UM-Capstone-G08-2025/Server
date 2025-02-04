@@ -12,6 +12,7 @@ diesel-async = { version = "0.5.2", features = ["postgres", "deadpool"] }
 dotenvy = "0.15.7"
 figment = { version = "0.10.19", features = ["env"] }
 http = "1.2.0"
+http-serde = "2.1.1"
 moka = { version = "0.12.10", features = ["future"] }
 rinja = "0.3.5"
 serde = { version = "1.0.217", features = ["derive"] }
